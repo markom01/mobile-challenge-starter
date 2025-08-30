@@ -1,13 +1,20 @@
 import { generateAPIUrl } from "@/utils";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
+import { Button } from "@react-navigation/elements";
+import { DefaultChatTransport, UIDataTypes, UIMessage, UITools } from "ai";
 import { fetch as expoFetch } from "expo/fetch";
-import { useState } from "react";
-import { View, TextInput, ScrollView, Text, SafeAreaView } from "react-native";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Text,
+  TextInput,
+  View,
+  VirtualizedList,
+} from "react-native";
 
 export default function App() {
   const [input, setInput] = useState("");
-  const { messages, error, sendMessage } = useChat({
+  const { messages, error, sendMessage, status, stop } = useChat({
     transport: new DefaultChatTransport({
       fetch: expoFetch as unknown as typeof globalThis.fetch,
       api: generateAPIUrl("/api/chat"),
@@ -15,54 +22,75 @@ export default function App() {
     onError: (error) => console.error(error, "ERROR"),
   });
 
+  const getItem = (
+    data: UIMessage<unknown, UIDataTypes, UITools>[],
+    index: number
+  ) => data[index];
+  const getItemCount = (data: UIMessage<unknown, UIDataTypes, UITools>[]) =>
+    data.length;
+
+  useEffect(() => {
+    console.log(JSON.stringify(messages, null, 2));
+  }, [messages]);
+
   if (error) return <Text>{error.message}</Text>;
 
   return (
-    <SafeAreaView style={{ height: "100%" }}>
-      <View
-        style={{
-          height: "95%",
-          display: "flex",
-          flexDirection: "column",
-          paddingHorizontal: 8,
-        }}
-      >
-        <ScrollView style={{ flex: 1 }}>
-          {messages.map((m) => (
-            <View key={m.id} style={{ marginVertical: 8 }}>
-              <View>
-                <Text style={{ fontWeight: 700 }}>{m.role}</Text>
-                {m.parts.map((part, i) => {
-                  switch (part.type) {
-                    case "text":
-                      return <Text key={`${m.id}-${i}`}>{part.text}</Text>;
-                    case "tool-weather":
-                      return (
-                        <Text key={`${m.id}-${i}`}>
-                          {JSON.stringify(part, null, 2)}
-                        </Text>
-                      );
-                  }
-                })}
-              </View>
-            </View>
-          ))}
-        </ScrollView>
-        <View style={{ marginTop: 8 }}>
-          <TextInput
-            style={{ backgroundColor: "white", padding: 8 }}
-            placeholder="Say something..."
-            value={input}
-            onChange={(e) => setInput(e.nativeEvent.text)}
-            onSubmitEditing={(e) => {
-              e.preventDefault();
-              sendMessage({ text: input });
-              setInput("");
-            }}
-            autoFocus={true}
-          />
-        </View>
+    <View
+      style={{
+        flex: 1,
+        padding: 20,
+        gap: 20,
+      }}
+    >
+      <VirtualizedList
+        showsVerticalScrollIndicator={false}
+        data={messages}
+        getItem={getItem}
+        getItemCount={getItemCount}
+        renderItem={({ item: m }) => (
+          <View style={{ gap: 8, marginBottom: 10, alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
+            {m.parts.map((part, i) => {
+              switch (part.type) {
+                case "text":
+                  return <Text key={`${m.id}-${i}`}>{part.text}</Text>;
+                case "tool-weather":
+                  return (
+                    <Text key={`${m.id}-${i}`}>
+                      {JSON.stringify(part, null, 2)}
+                    </Text>
+                  );
+              }
+            })}
+          </View>
+        )}
+        style={{ flex: 1 }}
+        ListFooterComponent={
+          status === "submitted" ? (
+            <ActivityIndicator />
+          ) : undefined
+        }
+      />
+      <View style={{ flexDirection: "row" }}>
+        <TextInput
+          style={{ flex: 1, backgroundColor: "white", padding: 8 }}
+          placeholder="Say something..."
+          value={input}
+          onChange={(e) => setInput(e.nativeEvent.text)}
+          onSubmitEditing={(e) => {
+            e.preventDefault();
+                   if (input.trim()) {
+            sendMessage({ text: input });
+            setInput("");
+                   }
+          }}
+          autoFocus={true}
+          editable={status === "ready"}
+        />
+        {status === "streaming" && (
+          <Button disabled={!(status === 'streaming' || status === 'submitted')} onPressIn={stop}>Stop</Button>
+        )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
