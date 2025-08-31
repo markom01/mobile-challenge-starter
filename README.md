@@ -6,6 +6,23 @@ Welcome! Use this repo as the starting point for your submission to the **Studyf
 
 ---
 
+## Features (what the app provides)
+
+This starter app demonstrates a simple streaming AI chat experience. Key features included in the project:
+
+- Chat UI: message bubbles for user, scrollable conversation view.
+- Message input: text input with send action and basic keyboard handling.
+- Error handling & loading states: UI shows when the app is waiting for model responses or when errors occur.
+- Minimal styling that resembles ChatGPT’s conversational look-and-feel (bubbles, feedback controls (thumbs up/down), or message actions (copy)).
+- Haptic feedback
+- Entering and exiting animations on elements
+- Markdown support
+- Temperature unit switcher (weather widget)
+- Dark and light theme
+- Safe area handling
+
+---
+
 ## Getting started
 
 * **pnpm** installed
